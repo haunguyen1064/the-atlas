@@ -1,4 +1,4 @@
-"""CrewAI agents for code analysis and documentation."""
+"""File Analysis Crew module for CrewAI-based repository analysis."""
 
 from .file_analysis_crew import FileAnalysisCrew
 

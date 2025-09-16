@@ -1,0 +1,65 @@
+# CrewAI Tasks Configuration for File Analysis
+# This configuration defines tasks for researching and classifying important files
+
+research_important_files_task:
+  description: >
+    Research and identify the most important files for understanding and documenting a software project
+    with the following characteristics:
+    
+    Repository URL: {repo_url}
+    Primary Language: {primary_language}
+    Languages present: {languages_list}
+    Project description: {repo_description}
+    Total files: {total_files}
+    Sample files: {sample_files}
+    
+    Using web search and your expertise, identify:
+    1. Entry point files (main files, startup files, application entry points)
+    2. Core business logic files (controllers, services, models, main modules)
+    3. Configuration files that define project behavior
+    4. Important architectural files (routers, middleware, utilities)
+    5. Key test files that demonstrate usage patterns
+    
+    Focus on the top {max_important_files} most critical files that would be essential for:
+    - Understanding the project's purpose and functionality
+    - Documenting the core architecture and design patterns
+    - Explaining how the system works to new developers
+    
+    For each identified important file, provide:
+    - File path relative to repository root
+    - Importance level (CRITICAL, HIGH, MEDIUM)
+    - Specific reason why this file is important
+    - What type of information/functionality it likely contains
+    
+    Base your analysis on the provided language patterns and industry best practices for {primary_language} projects.
+  expected_output: >
+    A structured list of the most important files with their importance levels, reasons, and expected content.
+    Format as JSON with file_path, importance_level, reason, and content_type for each file.
+  agent: file_analysis_researcher
+
+classify_file_importance_task:
+  description: >
+    Review the research findings and create final classifications of important files for the repository.
+    
+    Research findings: {research_findings}
+    
+    Refine and validate the file importance classifications by:
+    1. Ensuring the importance levels are appropriate (CRITICAL for absolutely essential files, HIGH for very important, MEDIUM for moderately important)
+    2. Verifying that the reasons are specific and actionable for documentation purposes
+    3. Adding any missing critical files that should be included
+    4. Removing any files that may not be as important as initially thought
+    5. Ensuring good coverage across different aspects of the project (entry points, business logic, configuration, tests)
+    
+    Create final ImportantFile objects with:
+    - file_path: Relative path from repository root
+    - importance_level: CRITICAL, HIGH, or MEDIUM
+    - confidence_score: 0.0 to 1.0 indicating confidence in classification
+    - reasons: List of specific reasons why this file is important
+    - content_type: Brief description of what type of content/functionality this file contains
+    - estimated_lines: Rough estimate of file size in lines of code
+  expected_output: >
+    A refined JSON list of ImportantFile objects with validated importance levels, confidence scores,
+    specific reasons, and content descriptions. Maximum {max_important_files} files.
+  agent: file_importance_classifier
+  context:
+    - research_important_files_task
