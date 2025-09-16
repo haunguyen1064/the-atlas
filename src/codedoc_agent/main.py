@@ -43,9 +43,9 @@ def cli(repo_url: Optional[str], repo_path: Optional[str], output_dir: str,
             if branch:
                 click.echo(f"Using branch: {branch}")
             
-            # Clone repository to temporary directory
-            local_path = git_tool.clone_repository(repo_url)
-            click.echo(f"Repository cloned to: {local_path}")
+            # Clone or update repository using cache
+            local_path = git_tool.clone_repository(repo_url, branch)
+            click.echo(f"Repository available at: {local_path}")
             
         else:
             click.echo(f"Analyzing local repository: {repo_path}")

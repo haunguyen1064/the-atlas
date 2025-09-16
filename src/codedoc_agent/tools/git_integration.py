@@ -10,6 +10,7 @@ This module provides comprehensive Git operations including:
 import os
 import shutil
 import tempfile
+import re
 from pathlib import Path
 from typing import List, Dict, Optional, Tuple, Set
 from dataclasses import dataclass
@@ -508,27 +509,118 @@ class GitRepository:
 
 
 class GitRepositoryTool:
-    """CrewAI tool wrapper for Git repository operations."""
+    """CrewAI tool wrapper for Git repository operations with caching support."""
     
     name = "git_repository"
-    description = "Tool for Git repository operations including cloning, analysis, and change detection"
+    description = "Tool for Git repository operations including cloning, analysis, and change detection with local caching"
     
-    def __init__(self):
+    def __init__(self, cache_dir: Optional[str] = None):
+        # Setup cache directory
+        if cache_dir:
+            self.cache_dir = Path(cache_dir)
+        else:
+            self.cache_dir = Path.home() / ".cache" / "codedoc-agent" / "repos"
+        
+        self.cache_dir.mkdir(parents=True, exist_ok=True)
+        logger.info(f"Using cache directory: {self.cache_dir}")
+        
         self.repositories: Dict[str, GitRepository] = {}
     
-    def clone_repository(self, repo_url: str, target_dir: Optional[str] = None) -> str:
-        """Clone a repository and return the local path.
+    def _normalize_repo_url(self, repo_url: str) -> str:
+        """Normalize repository URL to create consistent cache key.
         
         Args:
-            repo_url: Repository URL to clone.
-            target_dir: Target directory for cloning.
+            repo_url: Repository URL in various formats
             
         Returns:
-            Local path to the cloned repository.
+            Normalized cache directory name
+            
+        Examples:
+            https://github.com/owner/repo.git -> github.com_owner_repo
+            git@github.com:owner/repo.git -> github.com_owner_repo
+            https://gitlab.com/group/subgroup/repo -> gitlab.com_group_subgroup_repo
         """
-        git_repo = GitRepository(repo_url)
-        local_path = git_repo.clone(target_dir)
+        # Remove common prefixes and suffixes
+        url = repo_url.lower()
+        
+        # Handle SSH format: git@host:path
+        if url.startswith('git@'):
+            # git@github.com:owner/repo.git -> github.com/owner/repo
+            url = url.replace('git@', '').replace(':', '/')
+        
+        # Handle HTTP/HTTPS format
+        if url.startswith('http://') or url.startswith('https://'):
+            # https://github.com/owner/repo.git -> github.com/owner/repo
+            url = url.replace('http://', '').replace('https://', '')
+        
+        # Remove .git suffix
+        if url.endswith('.git'):
+            url = url[:-4]
+        
+        # Replace special characters with underscores
+        # github.com/owner/repo -> github.com_owner_repo
+        normalized = re.sub(r'[/\-\.]', '_', url)
+        
+        return normalized
+    
+    def _get_cache_path(self, repo_url: str) -> Path:
+        """Get cache directory path for a repository URL."""
+        cache_name = self._normalize_repo_url(repo_url)
+        return self.cache_dir / cache_name
+    
+    def clone_repository(self, repo_url: str, branch: Optional[str] = None) -> str:
+        """Clone repository or update if already cached.
+        
+        Args:
+            repo_url: Repository URL to clone/update
+            branch: Specific branch to checkout (optional)
+            
+        Returns:
+            Local path to the repository
+        """
+        cache_path = self._get_cache_path(repo_url)
+        
+        if cache_path.exists() and (cache_path / ".git").exists():
+            # Repository is cached - update it
+            logger.info(f"Found cached repository at {cache_path}")
+            logger.info("Updating cached repository with latest changes...")
+            
+            try:
+                git_repo = GitRepository(str(cache_path), auto_fetch=False)
+                git_repo.open()
+                
+                # Fetch latest changes
+                if git_repo._has_remote():
+                    git_repo.fetch()
+                    logger.info("Successfully updated cached repository")
+                
+                # Switch to requested branch if specified
+                if branch and git_repo.repo.active_branch.name != branch:
+                    try:
+                        git_repo.repo.git.checkout(branch)
+                        logger.info(f"Switched to branch: {branch}")
+                    except GitCommandError as e:
+                        logger.warning(f"Could not switch to branch {branch}: {e}")
+                
+                self.repositories[repo_url] = git_repo
+                return str(cache_path)
+                
+            except Exception as e:
+                logger.warning(f"Failed to update cached repository: {e}")
+                logger.info("Removing corrupted cache and re-cloning...")
+                shutil.rmtree(cache_path, ignore_errors=True)
+                # Fall through to clone logic below
+        
+        # Repository not cached or cache corrupted - clone it
+        logger.info(f"Cloning repository {repo_url} to cache...")
+        cache_path.mkdir(parents=True, exist_ok=True)
+        
+        git_repo = GitRepository(repo_url, auto_fetch=False)
+        local_path = git_repo.clone(target_dir=str(cache_path), branch=branch)
+        
         self.repositories[repo_url] = git_repo
+        logger.info(f"Successfully cloned repository to {local_path}")
+        
         return local_path
     
     def analyze_repository(self, repo_path: str) -> RepositoryInfo:
