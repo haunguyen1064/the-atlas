@@ -1,3 +1,6 @@
+---
+applyTo: '**'
+---
 # CodeDoc AI Agent - Copilot Instructions
 
 ## Project Overview
@@ -133,7 +136,28 @@ uv run mypy src/
 2. **No backward compatibility needed** - refactor freely 
 3. **uv is mandatory** - never use pip for this project
 4. **Cache-first approach** - always consider Git repository caching impact
-5. **Comprehensive testing** - maintain the existing test coverage patterns
-6. **CrewAI ready** - current structure supports future multi-agent implementation
+5. **CrewAI ready** - current structure supports future multi-agent implementation
+6. **No example files by default** - Do NOT create example files (in `examples/` directory) unless explicitly requested by the user
+7. **No unit tests required for PoC** - Skip writing unit tests unless specifically requested since this is just a proof of concept
+
+## File Creation Guidelines
+
+### Example Files Policy
+- **Never create example files automatically** - only create when user specifically asks
+- Examples directory: `examples/` - reserved for user-requested demonstrations only
+- Focus on implementing actual functionality rather than creating sample usage files
+- If user needs examples, they will explicitly request them
+
+### Testing Policy for PoC
+- **Skip unit tests by default** - Don't write tests unless user explicitly asks
+- **Focus on working code** - Prioritize functionality over test coverage
+- **Existing tests are sufficient** - The project already has basic Git integration tests
+- **Manual testing preferred** - Use example scripts for validation instead of formal tests
+
+### File Creation Priority
+1. **Core functionality first** - implement the requested feature
+2. **Documentation updates** - update relevant docs/README if needed
+3. **Examples only when asked** - create examples only upon explicit user request
+4. **Tests only when asked** - write unit tests only if user specifically requests them
 
 The codebase emphasizes practical functionality over enterprise patterns, making it ideal for rapid iteration and experimentation with AI-powered code analysis.
