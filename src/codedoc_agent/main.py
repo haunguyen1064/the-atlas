@@ -5,6 +5,8 @@ import logging
 from typing import Optional
 from pathlib import Path
 
+from dotenv import load_dotenv
+
 from .tools import GitRepository, GitRepositoryTool, RepositoryInfo
 
 
@@ -14,6 +16,9 @@ logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
 )
 logger = logging.getLogger(__name__)
+
+# Load environment variables from a local .env file if present
+load_dotenv()
 
 
 @click.command()

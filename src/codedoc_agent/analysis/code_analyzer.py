@@ -4,6 +4,8 @@ import logging
 from pathlib import Path
 from typing import Dict, List, Optional, Any
 from datetime import datetime
+import json
+from dataclasses import asdict, is_dataclass
 
 from .models import AIAnalysisInput, AIAnalysisResult, LanguageInfo
 from .file_classifier import FilePatternProvider
@@ -69,6 +71,9 @@ class CodeAnalysisOrchestrator:
             authors_count=len(repo_info.authors),
             last_commit_date=self._get_last_commit_date()
         )
+        
+        # Log full ai_input details for debugging/inspection
+        self._log_ai_input(ai_input)
         
         logger.info(f"Prepared AI input: {len(languages)} languages, {len(all_files)} files")
         return ai_input
@@ -153,6 +158,23 @@ class CodeAnalysisOrchestrator:
             return datetime.fromtimestamp(last_commit.committed_date)
         except Exception:
             return None
+
+    def _log_ai_input(self, ai_input: Any) -> None:
+        """Log full AIAnalysisInput as JSON for inspection."""
+        try:
+            if is_dataclass(ai_input):
+                payload = asdict(ai_input)
+            elif hasattr(ai_input, "model_dump"):
+                payload = ai_input.model_dump()  # pydantic v2
+            elif hasattr(ai_input, "dict") and callable(getattr(ai_input, "dict")):
+                payload = ai_input.dict()  # pydantic v1
+            elif hasattr(ai_input, "__dict__"):
+                payload = ai_input.__dict__
+            else:
+                payload = str(ai_input)
+            logger.info("AI input details:\n%s", json.dumps(payload, default=str, ensure_ascii=False, indent=2))
+        except Exception:
+            logger.info("AI input details (raw): %s", ai_input)
 
     def analyze_with_ai_agent(self, max_important_files: int = 20) -> AIAnalysisResult:
         """

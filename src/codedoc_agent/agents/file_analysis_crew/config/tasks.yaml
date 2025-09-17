@@ -10,9 +10,13 @@ research_important_files_task:
     Primary Language: {primary_language}
     Languages present: {languages_list}
     Project description: {repo_description}
+    Directory structure: {directory_structure}
     Total files: {total_files}
     
-    Using web search and your expertise, identify:
+    IMPORTANT: You must ONLY identify files that actually exist in the provided directory structure.
+    Do NOT suggest or add files that are not present in the repository.
+    
+    Review the directory structure carefully and identify existing files that match these categories:
     1. Entry point files (main files, startup files, application entry points)
     2. Core business logic files (controllers, services, models, main modules)
     3. Configuration files that define project behavior
@@ -25,7 +29,7 @@ research_important_files_task:
     - Explaining how the system works to new developers
     
     For each identified important file, provide:
-    - File path relative to repository root
+    - File path relative to repository root (must exist in directory_structure)
     - Importance level (CRITICAL, HIGH, MEDIUM)
     - Specific reason why this file is important
     - What type of information/functionality it likely contains

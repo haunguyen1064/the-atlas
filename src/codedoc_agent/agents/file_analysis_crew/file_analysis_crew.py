@@ -99,6 +99,7 @@ class FileAnalysisCrew:
                 "repo_description": ai_input.repo_description or "No description available",
                 "total_files": ai_input.total_files,
                 "max_important_files": max_files,
+                "directory_structure": ai_input.directory_structure or "No directory structure available",
                 "research_findings": ""  # Will be populated by first task
             }
             
