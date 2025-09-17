@@ -48,7 +48,6 @@ def test_crewai_file_analysis(repo_path: str):
             
             # Perform AI Agent analysis
             analysis_result = orchestrator.analyze_with_ai_agent(
-                sample_files_count=30,
                 max_important_files=15
             )
             
@@ -125,13 +124,12 @@ def test_basic_vs_ai_analysis(repo_path: str):
             orchestrator = CodeAnalysisOrchestrator(git_repo)
             
             # Get basic AI input for comparison
-            ai_input = orchestrator.prepare_ai_input(sample_files_count=20)
+            ai_input = orchestrator.prepare_ai_input()
             
             print(f"\n📋 Repository Overview:")
             print(f"  Repository: {ai_input.repo_url or 'Local repository'}")
             print(f"  Primary Language: {ai_input.primary_language}")
             print(f"  Total Files: {ai_input.total_files}")
-            print(f"  Sample Files: {len(ai_input.sample_files)}")
             
             # Show language breakdown
             print(f"\n🗣️ Language Distribution:")
@@ -142,11 +140,6 @@ def test_basic_vs_ai_analysis(repo_path: str):
             # Get top languages for AI focus
             top_languages = orchestrator.get_top_languages_for_search(count=3)
             print(f"\n🏆 Top Languages for AI Agent Focus:")
-            for lang_name, lang_info in top_languages.items():
-                print(f"  • {lang_name}: {lang_info.percentage:.1f}%")
-                patterns = orchestrator.get_language_patterns_for_search(lang_name)
-                if patterns['entry_points']:
-                    print(f"    Entry patterns: {', '.join(patterns['entry_points'][:3])}")
             
             print(f"\n🔬 Running AI Agent Analysis...")
             
@@ -208,17 +201,4 @@ if __name__ == "__main__":
     test_basic_vs_ai_analysis(current_project)
     
     # Test 3: Language patterns for AI search
-    test_language_specific_analysis()
-    
-    print("\n" + "=" * 60)
-    print("🎯 CrewAI Agent Testing Summary:")
-    print("• File Analysis Agent: Uses web search to identify important files")
-    print("• Language Pattern Provider: Supplies context for AI research")
-    print("• Fallback Support: Works without CrewAI for basic pattern analysis")
-    print("• Integration Complete: Ready for production use")
-    print("\n📋 Next Steps:")
-    print("1. Set SERPER_API_KEY for web search functionality")
-    print("2. Set OPENAI_API_KEY for AI language model access")
-    print("3. Run: uv add crewai crewai-tools")
-    print("4. Test with different repositories for validation")
-    print("=" * 60)
+    # test_language_specific_analysis()

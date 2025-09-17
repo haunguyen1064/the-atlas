@@ -91,11 +91,6 @@ class FileAnalysisCrew:
                 for name, info in ai_input.languages.items()
             ])
             
-            # Prepare sample files list
-            sample_files_str = "\n".join([
-                f"- {file_path}" for file_path in ai_input.sample_files[:30]
-            ])
-            
             # Execute the crew with structured inputs
             crew_inputs = {
                 "repo_url": ai_input.repo_url or "Unknown repository",
@@ -103,7 +98,6 @@ class FileAnalysisCrew:
                 "languages_list": languages_list,
                 "repo_description": ai_input.repo_description or "No description available",
                 "total_files": ai_input.total_files,
-                "sample_files": sample_files_str,
                 "max_important_files": max_files,
                 "research_findings": ""  # Will be populated by first task
             }
@@ -298,29 +292,6 @@ class FileAnalysisCrew:
         
         # Create basic important files based on sample files and patterns
         important_files = []
-        
-        # Look for common important file patterns in sample files
-        for file_path in ai_input.sample_files[:10]:
-            importance = "MEDIUM"
-            reasons = ["Identified as potentially important file"]
-            
-            # Simple pattern matching for importance
-            if any(pattern in file_path.lower() for pattern in ["main", "index", "app", "__init__"]):
-                importance = "CRITICAL"
-                reasons = ["Entry point or main application file"]
-            elif any(pattern in file_path.lower() for pattern in ["config", "settings", "setup"]):
-                importance = "HIGH"
-                reasons = ["Configuration or setup file"]
-            
-            important_file = ImportantFile(
-                file_path=file_path,
-                importance_level=importance,
-                confidence_score=0.4,  # Lower confidence for fallback
-                reasons=reasons,
-                content_type="Fallback analysis",
-                estimated_lines=100
-            )
-            important_files.append(important_file)
         
         return AIAnalysisResult(
             important_files=important_files,

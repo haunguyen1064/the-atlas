@@ -29,11 +29,8 @@ class CodeAnalysisOrchestrator:
         self.pattern_provider = FilePatternProvider()
         self.language_processor = LanguageDataProcessor()
     
-    def prepare_ai_input(self, sample_files_count: int = 50) -> AIAnalysisInput:
+    def prepare_ai_input(self) -> AIAnalysisInput:
         """Prepare input data for AI Agent analysis.
-        
-        Args:
-            sample_files_count: Number of sample files to include for context.
             
         Returns:
             AIAnalysisInput ready for AI Agent processing.
@@ -52,9 +49,6 @@ class CodeAnalysisOrchestrator:
         
         # Get sample files for AI context
         all_files = self._flatten_file_structure(file_structure)
-        sample_files = self._get_representative_sample_files(
-            all_files, languages, sample_files_count
-        )
         
         # Create AI input structure
         ai_input = AIAnalysisInput(
@@ -69,7 +63,6 @@ class CodeAnalysisOrchestrator:
             # File structure
             total_files=len(all_files),
             directory_structure=file_structure,
-            sample_files=sample_files,
             
             # Repository metadata
             total_commits=repo_info.total_commits,
@@ -79,28 +72,6 @@ class CodeAnalysisOrchestrator:
         
         logger.info(f"Prepared AI input: {len(languages)} languages, {len(all_files)} files")
         return ai_input
-    
-    def get_language_patterns_for_ai(self, language: str) -> Dict[str, List[str]]:
-        """Get language-specific patterns for AI Agent web search.
-        
-        Args:
-            language: Programming language name.
-            
-        Returns:
-            Dictionary with patterns for AI to search for.
-        """
-        return self.pattern_provider.get_all_patterns_for_language(language)
-    
-    def get_language_patterns_for_search(self, language: str) -> Dict[str, Any]:
-        """Get language-specific patterns for AI Agent web search.
-        
-        Args:
-            language: Programming language name.
-            
-        Returns:
-            Dictionary with patterns for AI to search for.
-        """
-        return self.pattern_provider.get_all_patterns_for_language(language)
     
     def get_top_languages_for_search(self, count: int = 5) -> Dict[str, LanguageInfo]:
         """Get top languages for AI Agent to focus web search on.
@@ -126,26 +97,15 @@ class CodeAnalysisOrchestrator:
         Returns:
             Formatted string with repository context for AI search.
         """
-        ai_input = self.prepare_ai_input(sample_files_count=20)  # Smaller sample for search
+        ai_input = self.prepare_ai_input()
         
         context_lines = [
             f"Repository: {ai_input.repo_url}",
             f"Primary Language: {ai_input.primary_language}",
-            f"Total Files: {ai_input.total_files}",
             "",
             self.language_processor.create_language_summary_for_ai(ai_input.languages),
             "",
-            "Sample Files:",
         ]
-        
-        # Add sample files grouped by directory
-        current_dir = ""
-        for file_path in ai_input.sample_files[:15]:  # Limit for search context
-            file_dir = str(Path(file_path).parent) if '/' in file_path else "."
-            if file_dir != current_dir:
-                context_lines.append(f"  {file_dir}/")
-                current_dir = file_dir
-            context_lines.append(f"    {Path(file_path).name}")
         
         return "\n".join(context_lines)
     
@@ -159,66 +119,6 @@ class CodeAnalysisOrchestrator:
                 else:
                     all_files.append(f"{directory}/{file_name}")
         return all_files
-    
-    def _get_representative_sample_files(self, all_files: List[str], 
-                                       languages: Dict[str, LanguageInfo], 
-                                       count: int) -> List[str]:
-        """Get representative sample of files for AI context.
-        
-        Args:
-            all_files: All files in repository.
-            languages: Language information.
-            count: Number of sample files to return.
-            
-        Returns:
-            List of representative file paths.
-        """
-        if not all_files:
-            return []
-        
-        # Prioritize files by importance indicators
-        priority_files = []
-        regular_files = []
-        
-        # Common important file patterns
-        important_patterns = [
-            'main', 'app', 'index', 'server', 'run', 'start',
-            'config', 'settings', 'requirements', 'package',
-            'readme', 'license', 'dockerfile', 'makefile'
-        ]
-        
-        for file_path in all_files:
-            file_name = Path(file_path).name.lower()
-            file_stem = Path(file_path).stem.lower()
-            
-            # Check if file matches important patterns
-            is_important = (
-                any(pattern in file_name for pattern in important_patterns) or
-                any(pattern in file_stem for pattern in important_patterns) or
-                file_path.count('/') == 0  # Root level files
-            )
-            
-            if is_important:
-                priority_files.append(file_path)
-            else:
-                regular_files.append(file_path)
-        
-        # Include sample files from each language
-        language_samples = []
-        for lang_info in languages.values():
-            language_samples.extend(lang_info.sample_files[:3])  # Top 3 per language
-        
-        # Combine and deduplicate
-        combined = priority_files + language_samples + regular_files
-        seen = set()
-        result = []
-        
-        for file_path in combined:
-            if file_path not in seen and len(result) < count:
-                seen.add(file_path)
-                result.append(file_path)
-        
-        return result
     
     def _get_repo_description(self) -> Optional[str]:
         """Try to get repository description from README or other sources."""
@@ -254,7 +154,7 @@ class CodeAnalysisOrchestrator:
         except Exception:
             return None
 
-    def analyze_with_ai_agent(self, sample_files_count: int = 30, max_important_files: int = 20) -> AIAnalysisResult:
+    def analyze_with_ai_agent(self, max_important_files: int = 20) -> AIAnalysisResult:
         """
         Perform complete analysis using CrewAI agents to identify important files.
         
@@ -262,7 +162,6 @@ class CodeAnalysisOrchestrator:
         to identify the most important files in the repository for documentation purposes.
         
         Args:
-            sample_files_count: Number of sample files to include for context.
             max_important_files: Maximum number of important files to identify.
             
         Returns:
@@ -272,7 +171,7 @@ class CodeAnalysisOrchestrator:
         
         try:
             # Step 1: Prepare AI input data
-            ai_input = self.prepare_ai_input(sample_files_count)
+            ai_input = self.prepare_ai_input()
             
             # Step 2: Import and initialize CrewAI agent (lazy import to avoid dependency issues)
             try:

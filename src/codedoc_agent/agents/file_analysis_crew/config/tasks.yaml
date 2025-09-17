@@ -11,7 +11,6 @@ research_important_files_task:
     Languages present: {languages_list}
     Project description: {repo_description}
     Total files: {total_files}
-    Sample files: {sample_files}
     
     Using web search and your expertise, identify:
     1. Entry point files (main files, startup files, application entry points)

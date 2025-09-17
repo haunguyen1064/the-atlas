@@ -29,7 +29,6 @@ class AIAnalysisInput:
     # File structure summary
     total_files: int
     directory_structure: Dict[str, List[str]]  # directory -> files
-    sample_files: List[str]  # Sample of all files for context
     
     # Repository metadata
     total_commits: int
