@@ -10,6 +10,10 @@ from codedoc_agent.analysis import CodeAnalysisOrchestrator
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
+from dotenv import load_dotenv
+
+load_dotenv()  # Add this line if missing
+
 
 def test_crewai_file_analysis(repo_path: str):
     """Test CrewAI agent for file analysis on a repository."""
@@ -22,8 +26,8 @@ def test_crewai_file_analysis(repo_path: str):
         if not os.getenv('SERPER_API_KEY'):
             print("⚠️  Warning: SERPER_API_KEY not set. Web search functionality will be limited.")
         
-        if not os.getenv('OPENAI_API_KEY'):
-            print("⚠️  Warning: OPENAI_API_KEY not set. AI analysis may not work.")
+        # if not os.getenv('OPENAI_API_KEY'):
+            # print("⚠️  Warning: OPENAI_API_KEY not set. AI analysis may not work.")
         
         # Initialize Git repository
         with GitRepository(repo_path) as git_repo:

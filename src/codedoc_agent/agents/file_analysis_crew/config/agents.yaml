@@ -13,7 +13,7 @@ file_analysis_researcher:
     their code, what files are typically most critical for understanding a project, and where the
     core business logic usually resides. You have analyzed thousands of repositories and can quickly
     identify entry points, configuration files, core modules, and architectural patterns.
-  llm: google/gemini-2.0-flash-exp
+  llm: gemini/gemini-2.0-flash-exp
   verbose: true
   allow_delegation: false
 
@@ -29,6 +29,6 @@ file_importance_classifier:
     core business logic, others are configuration or boilerplate. You excel at distinguishing
     between critical files that need detailed documentation and supporting files that require
     minimal attention. Your classifications help prioritize documentation efforts effectively.
-  llm: google/gemini-2.0-flash-exp
+  llm: gemini/gemini-2.0-flash-exp
   verbose: true
   allow_delegation: false
