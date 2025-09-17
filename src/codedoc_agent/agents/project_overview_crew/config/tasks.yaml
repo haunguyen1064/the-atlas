@@ -1,0 +1,146 @@
+# CrewAI Tasks Configuration for Project Overview Analysis
+# This configuration defines tasks for analyzing project content and generating overview
+
+analyze_project_content_task:
+  description: >
+    Analyze the source code content from the most important files in the project to understand
+    the project's purpose, architecture, and core functionality.
+    
+    Project Information:
+    - Repository URL: {repo_url}
+    - Primary Language: {primary_language}
+    - Languages present: {languages_list}
+    - Directory structure: {directory_structure}
+    - Total files analyzed: {total_files_analyzed}
+    
+    Source Code Content:
+    {file_contents}
+    
+    Based on the provided source code from the most important files, analyze and determine:
+    
+    1. **Project Purpose & Functionality**:
+       - What does this project do? What problem does it solve?
+       - What are the main features and capabilities?
+       - Who is the target audience (developers, end-users, etc.)?
+    
+    2. **Architecture & Design Patterns**:
+       - What architectural patterns are used? (MVC, microservices, monolith, etc.)
+       - How is the code organized and structured?
+       - What are the main modules/components and their responsibilities?
+    
+    3. **Entry Points & Main Flow**:
+       - What are the main entry points of the application?
+       - How does the application start and what is the main execution flow?
+       - What are the key classes, functions, or modules that drive the application?
+    
+    4. **Core Technologies & Implementation**:
+       - What programming paradigms are used? (OOP, functional, procedural)
+       - What are the key algorithms or business logic implementations?
+       - How does data flow through the application?
+    
+    Focus your analysis on the actual source code provided, not general assumptions.
+    Provide specific examples from the code when possible.
+  expected_output: >
+    A detailed project analysis covering purpose, architecture, design patterns, entry points,
+    and core implementation details with specific examples from the source code.
+  agent: project_analyzer_agent
+
+analyze_dependencies_and_frameworks_task:
+  description: >
+    Analyze the project's dependencies, frameworks, libraries, and technology stack based on
+    configuration files and source code imports.
+    
+    Source Code Content:
+    {file_contents}
+    
+    Directory Structure:
+    {directory_structure}
+    
+    Analyze and extract information about:
+    
+    1. **Frameworks & Libraries**:
+       - What main frameworks are being used? (React, Django, Spring, Express, etc.)
+       - What are the versions of these frameworks?
+       - How are these frameworks being used in the project?
+    
+    2. **Dependencies & Packages**:
+       - What external libraries/packages are being used?
+       - What are the key dependencies and their purposes?
+       - Are there any critical or notable dependencies?
+    
+    3. **Development & Build Tools**:
+       - What build tools, task runners, or development tools are used?
+       - What testing frameworks are in place?
+       - What development environment setup is required?
+    
+    4. **Configuration & Environment**:
+       - What configuration management approaches are used?
+       - What environment variables or configuration files are needed?
+       - What runtime requirements exist?
+    
+    5. **Technology Stack Summary**:
+       - What is the complete technology stack (frontend, backend, database, etc.)?
+       - What programming language versions are targeted?
+       - What platforms or environments does this run on?
+    
+    Extract this information from package.json, requirements.txt, pom.xml, Cargo.toml,
+    go.mod, pyproject.toml, or similar configuration files, as well as import statements
+    in the source code.
+  expected_output: >
+    A comprehensive technology stack analysis including frameworks, dependencies, versions,
+    build tools, configuration requirements, and complete technology stack summary.
+  agent: dependency_analyzer_agent
+  context:
+    - analyze_project_content_task
+
+generate_project_overview_task:
+  description: >
+    Generate a comprehensive project overview by combining the project analysis and
+    dependency analysis results.
+    
+    Project Analysis: {project_analysis}
+    Dependency Analysis: {dependency_analysis}
+    
+    Create a well-structured project overview that includes:
+    
+    1. **Project Summary**:
+       - Brief description of what the project does
+       - Key features and capabilities
+       - Target audience and use cases
+    
+    2. **Technology Stack**:
+       - Programming languages and versions
+       - Main frameworks and their versions
+       - Key libraries and dependencies
+       - Development and build tools
+    
+    3. **Architecture Overview**:
+       - High-level architecture and design patterns
+       - Main components and their relationships
+       - Data flow and application structure
+    
+    4. **Getting Started Information**:
+       - How to set up the development environment
+       - Key configuration requirements
+       - Main entry points and how to run the project
+    
+    5. **Key Implementation Details**:
+       - Important algorithms or business logic
+       - Notable code patterns or techniques used
+       - Critical files and their purposes
+    
+    Format the overview in clear, well-organized sections that would be useful for:
+    - New developers joining the project
+    - Technical stakeholders evaluating the project
+    - Documentation and onboarding purposes
+    
+    Make it comprehensive but accessible, providing both high-level understanding
+    and technical details where appropriate.
+  expected_output: >
+    A comprehensive, well-structured project overview document that provides complete
+    understanding of the project's purpose, technology stack, architecture, and
+    implementation details in a format suitable for documentation and onboarding.
+  agent: project_analyzer_agent
+  context:
+    - analyze_project_content_task
+    - analyze_dependencies_and_frameworks_task

@@ -7,9 +7,10 @@ from datetime import datetime
 import json
 from dataclasses import asdict, is_dataclass
 
-from .models import AIAnalysisInput, AIAnalysisResult, LanguageInfo
+from .models import AIAnalysisInput, AIAnalysisResult, LanguageInfo, ProjectOverviewResult, ImportantFile
 from .file_classifier import FilePatternProvider
 from .language_analyzer import LanguageDataProcessor
+from .file_content_reader import FileContentReader, AggregatedFileContent
 from ..tools.git_integration import GitRepository, RepositoryInfo
 
 logger = logging.getLogger(__name__)
@@ -30,6 +31,7 @@ class CodeAnalysisOrchestrator:
         # Initialize processors
         self.pattern_provider = FilePatternProvider()
         self.language_processor = LanguageDataProcessor()
+        self.file_content_reader = FileContentReader(self.repo_path)
     
     def prepare_ai_input(self) -> AIAnalysisInput:
         """Prepare input data for AI Agent analysis.
@@ -176,6 +178,140 @@ class CodeAnalysisOrchestrator:
         except Exception:
             logger.info("AI input details (raw): %s", ai_input)
 
+    def analyze_project_overview(self, important_files: List[ImportantFile]) -> ProjectOverviewResult:
+        """
+        Analyze project content from important files to generate comprehensive overview.
+        
+        Args:
+            important_files: List of ImportantFile objects to analyze.
+            
+        Returns:
+            ProjectOverviewResult with comprehensive project overview.
+        """
+        logger.info(f"Starting project overview analysis for {len(important_files)} important files")
+        
+        try:
+            # Step 1: Read content from important files
+            file_content = self.file_content_reader.read_important_files(important_files)
+            
+            # Log file reading summary
+            logger.info(f"File reading summary: {file_content.successful_reads}/{file_content.total_files} files read successfully")
+            
+            # Step 2: Prepare AI input
+            ai_input = self.prepare_ai_input()
+            
+            # Step 3: Try CrewAI project overview analysis
+            try:
+                from ..agents.project_overview_crew import ProjectOverviewCrew
+                
+                logger.info("Using CrewAI for project overview analysis")
+                overview_crew = ProjectOverviewCrew()
+                overview_result_dict = overview_crew.analyze_project_overview(ai_input, file_content)
+                
+                # Convert to ProjectOverviewResult
+                overview_result = ProjectOverviewResult(
+                    overview=overview_result_dict.get("overview", ""),
+                    repo_url=overview_result_dict.get("repo_url"),
+                    primary_language=overview_result_dict.get("primary_language"),
+                    total_files_analyzed=overview_result_dict.get("total_files_analyzed", 0),
+                    analysis_status=overview_result_dict.get("analysis_status", "success"),
+                    analysis_method=overview_result_dict.get("analysis_method", "CrewAI")
+                )
+                
+                logger.info("Project overview analysis completed successfully with CrewAI")
+                return overview_result
+                
+            except ImportError as e:
+                logger.warning(f"CrewAI not available for project overview: {e}")
+                return self._create_basic_project_overview(ai_input, file_content)
+            
+        except Exception as e:
+            logger.error(f"Project overview analysis failed: {e}")
+            # Fallback to basic overview
+            ai_input = self.prepare_ai_input()
+            return self._create_basic_project_overview(ai_input, None)
+
+    def _create_basic_project_overview(
+        self, 
+        ai_input: AIAnalysisInput, 
+        file_content: Optional[AggregatedFileContent] = None
+    ) -> ProjectOverviewResult:
+        """
+        Create a basic project overview when CrewAI is not available.
+        
+        Args:
+            ai_input: AI analysis input data.
+            file_content: Optional file content data.
+            
+        Returns:
+            Basic ProjectOverviewResult.
+        """
+        logger.info("Creating basic project overview")
+        
+        overview_lines = [
+            f"# Project Overview (Basic Analysis)",
+            f"",
+            f"## Repository Information",
+            f"**URL**: {ai_input.repo_url or 'Local repository'}",
+            f"**Primary Language**: {ai_input.primary_language or 'Unknown'}",
+            f"**Total Files**: {ai_input.total_files}",
+            f"**Total Commits**: {ai_input.total_commits}",
+            f"**Contributors**: {ai_input.authors_count}",
+            f"",
+            f"## Languages Used",
+        ]
+        
+        if ai_input.languages:
+            for lang_name, lang_info in ai_input.languages.items():
+                overview_lines.append(f"- **{lang_name}**: {lang_info.line_count:,} lines ({lang_info.percentage:.1f}%)")
+        else:
+            overview_lines.append("- No language information available")
+        
+        overview_lines.extend([
+            "",
+            f"## Project Structure",
+            "### Directory Overview",
+        ])
+        
+        if ai_input.directory_structure:
+            for directory, files in list(ai_input.directory_structure.items())[:10]:
+                dir_name = "Root directory" if directory == "." else directory
+                overview_lines.append(f"- **{dir_name}**: {len(files)} files")
+        
+        if file_content:
+            overview_lines.extend([
+                "",
+                f"## File Analysis Summary",
+                f"- **Total files analyzed**: {file_content.successful_reads}/{file_content.total_files}",
+                f"- **Critical files**: {file_content.critical_files_count}",
+                f"- **High importance files**: {file_content.high_files_count}",
+                f"- **Medium importance files**: {file_content.medium_files_count}",
+                f"- **Total lines analyzed**: {file_content.total_lines:,}",
+                "",
+                f"### Successfully Analyzed Files",
+            ])
+            
+            for file_obj in file_content.files[:15]:  # Show first 15 files
+                if file_obj.is_readable:
+                    overview_lines.append(f"- `{file_obj.file_path}` ({file_obj.importance_level}) - {file_obj.content_type}")
+        
+        overview_lines.extend([
+            "",
+            "## Notes",
+            "This is a basic analysis generated from repository metadata and file structure.",
+            "For detailed project analysis including dependencies, frameworks, and architecture,",
+            "install CrewAI dependencies and configure API keys for enhanced analysis.",
+        ])
+        
+        return ProjectOverviewResult(
+            overview="\n".join(overview_lines),
+            repo_url=ai_input.repo_url,
+            primary_language=ai_input.primary_language,
+            total_files_analyzed=file_content.successful_reads if file_content else 0,
+            analysis_status="basic",
+            analysis_method="Basic Repository Analysis"
+        )
+
     def analyze_with_ai_agent(self, max_important_files: int = 20) -> AIAnalysisResult:
         """
         Perform complete analysis using CrewAI agents to identify important files.
@@ -236,8 +372,11 @@ class CodeAnalysisOrchestrator:
         
         important_files = []
         
+        # Get all files from directory structure
+        all_files = self._flatten_file_structure(ai_input.directory_structure)
+        
         # Use pattern-based identification for common important files
-        for file_path in ai_input.sample_files[:15]:
+        for file_path in all_files[:15]:
             importance_level = "MEDIUM"
             reasons = ["Identified through pattern analysis"]
             content_type = "General file"

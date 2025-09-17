@@ -198,7 +198,7 @@ if __name__ == "__main__":
     test_crewai_file_analysis(current_project)
     
     # Test 2: Compare basic vs AI analysis
-    test_basic_vs_ai_analysis(current_project)
+    # test_basic_vs_ai_analysis(current_project)
     
     # Test 3: Language patterns for AI search
     # test_language_specific_analysis()

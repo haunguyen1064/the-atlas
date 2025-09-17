@@ -69,6 +69,28 @@ class AIAnalysisResult:
 
 
 @dataclass
+class ProjectOverviewResult:
+    """Result from project overview analysis."""
+    # Overview content
+    overview: str  # Complete project overview text
+    
+    # Metadata
+    repo_url: Optional[str]
+    primary_language: Optional[str]
+    total_files_analyzed: int
+    analysis_status: str  # "success", "fallback", "error"
+    analysis_method: str  # "CrewAI Project Overview Analysis", "Basic File Summary", etc.
+    
+    # Optional detailed breakdown
+    project_summary: Optional[str] = None
+    technology_stack: Optional[Dict[str, str]] = None
+    architecture_overview: Optional[str] = None
+    key_features: Optional[List[str]] = None
+    dependencies: Optional[List[str]] = None
+    setup_instructions: Optional[str] = None
+
+
+@dataclass
 class ProjectAnalysis:
     """Complete project analysis combining Git data and AI insights."""
     # Input data
@@ -77,6 +99,9 @@ class ProjectAnalysis:
     # AI analysis results
     ai_analysis: AIAnalysisResult
     
-    # Combined insights
+    # Combined insights (required)
     analysis_timestamp: datetime
     analysis_version: str  # Version of the analysis process used
+    
+    # Project overview results (optional)
+    project_overview: Optional[ProjectOverviewResult] = None
